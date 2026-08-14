@@ -1,0 +1,1 @@
+# WiFiSecurityLab~ currently relies on the default Android optimization rules.
