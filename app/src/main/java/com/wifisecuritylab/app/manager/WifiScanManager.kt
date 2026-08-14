@@ -1,5 +1,6 @@
 package com.wifisecuritylab.app.manager
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+@SuppressLint("MissingPermission")
 class WifiScanManager(private val context: Context) {
 
     private val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager

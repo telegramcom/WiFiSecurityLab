@@ -1,5 +1,6 @@
 package com.wifisecuritylab.app.manager
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -40,6 +41,7 @@ class HotspotManager(private val context: Context) {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
     }
 
+    @SuppressLint("MissingPermission")
     @RequiresApi(Build.VERSION_CODES.O)
     fun startHotspot(ssid: String = "LAB-WIFI") {
         if (!canCreateHotspot()) {
@@ -61,17 +63,19 @@ class HotspotManager(private val context: Context) {
                     override fun onStarted(reservation: WifiManager.LocalOnlyHotspotReservation?) {
                         super.onStarted(reservation)
                         this@HotspotManager.reservation = reservation
-                        val config = reservation?.softApConfiguration
-
                         // Android does not expose the actual SSID for local-only hotspots easily
                         // The system generates one. We report what we can.
                         Handler(Looper.getMainLooper()).postDelayed({
                             val gateway = getGatewayIp()
+                            val generatedSsid = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                reservation?.softApConfiguration?.ssid
+                            } else null
+                            val generatedPassword = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                reservation?.softApConfiguration?.passphrase
+                            } else null
                             _hotspotState.value = HotspotState.Running(
-                                ssid = config?.ssid ?: "AndroidShare_####",
-                                password = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                    config?.passphrase
-                                } else null,
+                                ssid = generatedSsid ?: "AndroidShare_####",
+                                password = generatedPassword,
                                 gateway = gateway
                             )
                         }, 1500)
