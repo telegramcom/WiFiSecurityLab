@@ -146,6 +146,7 @@ private fun StatusCard(
     }
 }
 
+@Composable
 private fun statusColor(status: LabStatus) = when (status) {
     LabStatus.RUNNING -> MaterialTheme.colorScheme.primary
     LabStatus.ERROR -> MaterialTheme.colorScheme.error
