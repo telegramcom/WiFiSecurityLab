@@ -12,7 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -36,11 +37,12 @@ import com.wifisecuritylab.app.data.model.ClientInfo
 import com.wifisecuritylab.app.data.model.LabConfiguration
 import com.wifisecuritylab.app.data.model.LabEvent
 import com.wifisecuritylab.app.data.model.LabStatus
-import com.wifisecuritylab.app.data.model.WiFiNetwork
 import com.wifisecuritylab.app.ui.viewmodel.MainViewModel
+import android.net.wifi.ScanResult
 import java.text.DateFormat
 import java.util.Date
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(viewModel: MainViewModel, onNavigate: (String) -> Unit) {
     val status by viewModel.labStatus.collectAsState()
@@ -273,7 +275,7 @@ fun DetectionScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 Text("No scan results yet.")
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(networks, key = { "${it.ssid}-${it.bssid}" }) { NetworkRow(it) }
+                items(networks, key = { "${it.SSID}-${it.BSSID}" }) { NetworkRow(it) }
                 }
             }
         }
@@ -281,12 +283,11 @@ fun DetectionScreen(viewModel: MainViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun NetworkRow(network: WiFiNetwork) {
+private fun NetworkRow(network: ScanResult) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(network.ssid.ifBlank { "Hidden network" }, fontWeight = FontWeight.SemiBold)
+            Text(network.SSID.ifBlank { "Hidden network" }, fontWeight = FontWeight.SemiBold)
             Text("${network.capabilities.ifBlank { "Unknown security" }} · signal ${network.level} dBm")
-            if (network.isConnected) Text("Connected to this device", color = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -342,7 +343,7 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 redact = it
                 viewModel.updateLabConfig(config.copy(redactCredentials = it))
             }
-            HorizontalDivider()
+            Divider()
             Text("Local server port: 8080")
             Text("Minimum Android version: API 26")
             Text("No cloud services or remote telemetry are used.")
@@ -362,6 +363,7 @@ private fun SettingToggle(label: String, checked: Boolean, onCheckedChange: (Boo
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScreenScaffold(title: String, onBack: () -> Unit, content: @Composable (androidx.compose.foundation.layout.PaddingValues) -> Unit) {
     Scaffold(
