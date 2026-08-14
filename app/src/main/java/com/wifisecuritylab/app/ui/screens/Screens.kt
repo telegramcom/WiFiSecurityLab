@@ -39,6 +39,9 @@ import com.wifisecuritylab.app.data.model.LabEvent
 import com.wifisecuritylab.app.data.model.LabStatus
 import com.wifisecuritylab.app.ui.viewmodel.MainViewModel
 import android.net.wifi.ScanResult
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import java.text.DateFormat
 import java.util.Date
 
@@ -50,6 +53,9 @@ fun DashboardScreen(viewModel: MainViewModel, onNavigate: (String) -> Unit) {
     val events by viewModel.events.collectAsState()
     val clients by viewModel.clients.collectAsState()
     val serverRunning by viewModel.serverRunning.collectAsState()
+    val activeSsid by viewModel.activeHotspotSsid.collectAsState()
+    val hotspotPassword by viewModel.hotspotPassword.collectAsState()
+    val portalUrl by viewModel.portalUrl.collectAsState()
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("WiFiSecurityLab~") }) }
@@ -70,7 +76,15 @@ fun DashboardScreen(viewModel: MainViewModel, onNavigate: (String) -> Unit) {
                 )
             }
             item {
-                StatusCard(status, config.ssid, serverRunning, viewModel)
+                StatusCard(
+                    status = status,
+                    configuredSsid = config.ssid,
+                    activeSsid = activeSsid,
+                    hotspotPassword = hotspotPassword,
+                    serverRunning = serverRunning,
+                    portalUrl = portalUrl,
+                    viewModel = viewModel
+                )
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -125,20 +139,46 @@ fun DashboardScreen(viewModel: MainViewModel, onNavigate: (String) -> Unit) {
 @Composable
 private fun StatusCard(
     status: LabStatus,
-    ssid: String,
+    configuredSsid: String,
+    activeSsid: String?,
+    hotspotPassword: String?,
     serverRunning: Boolean,
+    portalUrl: String,
     viewModel: MainViewModel
 ) {
+    val context = LocalContext.current
+    val displayedSsid = activeSsid ?: configuredSsid
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Lab status", style = MaterialTheme.typography.titleMedium)
             Text(status.name, fontWeight = FontWeight.Bold, color = statusColor(status))
-            Text("SSID: $ssid")
+            Text("Wi-Fi name: $displayedSsid")
+            if (status == LabStatus.RUNNING && hotspotPassword != null) {
+                Text("Wi-Fi password: $hotspotPassword", fontWeight = FontWeight.SemiBold)
+            }
             Text("Portal server: ${if (serverRunning) "running on port 8080" else "stopped"}")
+            if (status == LabStatus.RUNNING) {
+                Text("Portal URL: $portalUrl", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Connect Phone B using the displayed Wi-Fi details. If Android does not open the portal automatically, enter this URL in the browser on Phone B.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Button(
+                    onClick = {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(portalUrl))
+                        )
+                    }
+                ) {
+                    Text("Open portal on this phone")
+                }
+            }
             if (status == LabStatus.RUNNING || status == LabStatus.STARTING) {
                 Button(onClick = viewModel::stopLabWifi) { Text("Stop lab") }
             } else {
-                Button(onClick = { viewModel.createLabWifi(ssid, LabConfiguration.SecurityType.OPEN) }) {
+                Button(onClick = {
+                    viewModel.createLabWifi(configuredSsid, LabConfiguration.SecurityType.OPEN)
+                }) {
                     Text("Start LAB-WIFI")
                 }
             }

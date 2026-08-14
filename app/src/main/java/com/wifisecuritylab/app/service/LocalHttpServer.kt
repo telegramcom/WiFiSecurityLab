@@ -66,12 +66,21 @@ class LocalHttpServer(private val port: Int = 8080) {
 
             val userAgent = headers["User-Agent"] ?: "Unknown"
             val clientIp = client.inetAddress.hostAddress ?: "unknown"
+            val cleanPath = path.substringBefore("?")
 
             when {
-                method == "GET" && (path == "/" || path == "/portal") -> {
+                method == "GET" && cleanPath in setOf(
+                    "/",
+                    "/portal",
+                    "/generate_204",
+                    "/gen_204",
+                    "/hotspot-detect.html",
+                    "/connecttest.txt",
+                    "/ncsi.txt"
+                ) -> {
                     servePortal(writer)
                 }
-                method == "POST" && path == "/submit" -> {
+                method == "POST" && cleanPath == "/submit" -> {
                     val contentLength = headers["Content-Length"]?.toIntOrNull() ?: 0
                     val body = CharArray(contentLength)
                     reader.read(body)

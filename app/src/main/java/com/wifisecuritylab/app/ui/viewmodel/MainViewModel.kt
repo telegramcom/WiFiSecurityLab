@@ -56,6 +56,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _portalAddress = MutableStateFlow("192.168.43.1:8080")
     val portalAddress = _portalAddress.asStateFlow()
 
+    private val _portalUrl = MutableStateFlow("http://192.168.43.1:8080/portal")
+    val portalUrl = _portalUrl.asStateFlow()
+
+    private val _activeHotspotSsid = MutableStateFlow<String?>(null)
+    val activeHotspotSsid = _activeHotspotSsid.asStateFlow()
+
+    private val _hotspotPassword = MutableStateFlow<String?>(null)
+    val hotspotPassword = _hotspotPassword.asStateFlow()
+
     private var httpServer: LocalHttpServer? = null
 
     init {
@@ -64,7 +73,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 when (state) {
                     is HotspotManager.HotspotState.Running -> {
                         _labStatus.value = LabStatus.RUNNING
-                        _portalAddress.value = "${state.gateway ?: "192.168.43.1"}:8080"
+                        val gateway = state.gateway ?: "192.168.43.1"
+                        _activeHotspotSsid.value = state.ssid
+                        _hotspotPassword.value = state.password
+                        _portalAddress.value = "$gateway:8080"
+                        _portalUrl.value = "http://$gateway:8080/portal"
+                        _labConfig.value = _labConfig.value.copy(
+                            portalAddress = _portalAddress.value,
+                            ssid = state.ssid ?: _labConfig.value.ssid
+                        )
                         addEvent(LabEvent.EventType.SUCCESS, "LAB-WIFI started", "Hotspot active")
                         startHttpServer()
                     }
@@ -78,6 +95,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     else -> {
                         _labStatus.value = LabStatus.STOPPED
+                        _activeHotspotSsid.value = null
+                        _hotspotPassword.value = null
+                        _portalAddress.value = "192.168.43.1:8080"
+                        _portalUrl.value = "http://192.168.43.1:8080/portal"
                         stopHttpServer()
                     }
                 }

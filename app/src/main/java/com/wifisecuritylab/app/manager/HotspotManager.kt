@@ -67,12 +67,19 @@ class HotspotManager(private val context: Context) {
                         // The system generates one. We report what we can.
                         Handler(Looper.getMainLooper()).postDelayed({
                             val gateway = getGatewayIp()
-                            val generatedSsid = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                reservation?.softApConfiguration?.ssid
-                            } else null
-                            val generatedPassword = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                reservation?.softApConfiguration?.passphrase
-                            } else null
+                            val generatedSsid: String?
+                            val generatedPassword: String?
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                generatedSsid = reservation?.softApConfiguration?.ssid
+                                generatedPassword = reservation?.softApConfiguration?.passphrase
+                            } else {
+                                @Suppress("DEPRECATION")
+                                val legacyConfig = reservation?.wifiConfiguration
+                                @Suppress("DEPRECATION")
+                                generatedSsid = legacyConfig?.SSID?.trim('"')
+                                @Suppress("DEPRECATION")
+                                generatedPassword = legacyConfig?.preSharedKey
+                            }
                             _hotspotState.value = HotspotState.Running(
                                 ssid = generatedSsid ?: "AndroidShare_####",
                                 password = generatedPassword,
@@ -131,7 +138,14 @@ class HotspotManager(private val context: Context) {
         return try {
             NetworkInterface.getNetworkInterfaces().toList()
                 .flatMap { it.inetAddresses.toList() }
-                .filter { !it.isLoopbackAddress && it.hostAddress?.contains(":") == false }
+                .filter {
+                    !it.isLoopbackAddress &&
+                        it is java.net.Inet4Address &&
+                        it.hostAddress?.startsWith("192.168.") == true
+                }
+                .sortedBy { address ->
+                    if (address.hostAddress == "192.168.43.1") 0 else 1
+                }
                 .firstOrNull()
                 ?.hostAddress
         } catch (e: Exception) {
